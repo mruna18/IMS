@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',"auth_system","rest_framework",
-    'rest_framework_simplejwt',"warehouse"
+    'rest_framework_simplejwt',"warehouse",'inventory','corsheaders','tasks'
 ]
 
 MIDDLEWARE = [
@@ -48,7 +48,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware', 
+    'django.middleware.common.CommonMiddleware'
 ]
+
 
 ROOT_URLCONF = 'IMS.urls'
 
