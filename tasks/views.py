@@ -5,6 +5,7 @@ from rest_framework import status
 from .models import *
 from .serializers import *
 from django.utils import timezone
+from api.permission import check_employee_permission
 
 class TaskTypeListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -25,6 +26,7 @@ class PutAwayTaskListView(APIView):
 class PutAwayTaskCompleteView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @check_employee_permission("complete_putaway")
     def post(self, request, pk):
         try:
             task = PutAwayTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
@@ -50,6 +52,7 @@ class PickUpTaskListView(APIView):
 class PickUpTaskCompleteView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @check_employee_permission("complete_pickup")
     def post(self, request, pk):
         try:
             task = PickUpTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)

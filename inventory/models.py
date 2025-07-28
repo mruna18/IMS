@@ -29,6 +29,9 @@ class Inventory(models.Model):
     class Meta:
         unique_together = ('item', 'location')
 
+    def __str__(self):
+        return f"{self.item.name} at {self.location.code} - {self.quantity}" if self.item and self.location else "Inventory Item"
+
 
 class Inward(models.Model):
     item = models.ForeignKey('Item', on_delete=models.DO_NOTHING, null=True, blank=True)
@@ -41,6 +44,9 @@ class Inward(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted = models.BooleanField(default=False)
 
+    def __str__(self):
+        return f"Inward #{self.id} - {self.item.name if self.item else 'Unknown Item'} at {self.location.code if self.location else 'Unknown Location'}"
+
 
 class Outward(models.Model):
     item = models.ForeignKey('Item', on_delete=models.DO_NOTHING, null=True, blank=True)
@@ -52,6 +58,11 @@ class Outward(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted = models.BooleanField(default=False)
+    is_dispatched = models.BooleanField(default=False)
+    dispatched_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Outward #{self.id} - {self.item.name if self.item else 'Unknown Item'} from {self.location.code if self.location else 'Unknown Location'}"
 
 
 class InventoryLog(models.Model):
@@ -63,3 +74,4 @@ class InventoryLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted = models.BooleanField(default=False)
+

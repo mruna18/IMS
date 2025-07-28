@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from api.permission import check_employee_permission
 
 from .models import *
 from .serializers import *
@@ -20,6 +21,7 @@ class ItemListView(APIView):
 class ItemCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @check_employee_permission("create_inward")
     def post(self, request):
         data = request.data.copy()
         data['created_by'] = request.user.id
@@ -53,9 +55,12 @@ class InwardListView(APIView):
 class InwardCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # @check_employee_permission("create_inward")
     def post(self, request):
         data = request.data.copy()
         data['received_by'] = request.user.id
+        to_location_id = data.pop('to_location', None) 
+
         serializer = InwardSerializer(data=data)
         if serializer.is_valid():
             inward = serializer.save()
@@ -86,11 +91,18 @@ class InwardCreateView(APIView):
 
             putaway_type = TaskType.objects.get(code="PUTAWAY")
 
+            to_location = None
+            if to_location_id:
+                try:
+                    to_location = Location.objects.get(id=to_location_id)
+                except Location.DoesNotExist:
+                    return Response({"error": "Invalid to_location ID"}, status=400)
+
             PutAwayTask.objects.create(
                  inward=inward,  
                 item=inward.item,
                 from_location=inward.location,
-                to_location=inward.location, # Assuming putaway to the same location for simplicity
+                to_location=to_location or inward.location,
                 quantity=inward.quantity,
                 assigned_to=request.user,
                 task_type=putaway_type,
@@ -117,9 +129,13 @@ class OutwardListView(APIView):
 class OutwardCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @check_employee_permission("create_outward")
     def post(self, request):
         data = request.data.copy()
         data['dispatched_by'] = request.user.id
+
+        to_location_id = data.pop('to_location', None)
+
         serializer = OutwardSerializer(data=data)
         if serializer.is_valid():
             outward = serializer.save()
@@ -146,10 +162,19 @@ class OutwardCreateView(APIView):
                     
                 pickup_type = TaskType.objects.get(code="PICKUP")
 
+                to_location = None
+                if to_location_id:
+                    try:
+                        to_location = Location.objects.get(id=to_location_id)
+                    except Location.DoesNotExist:
+                        return Response({"error": "Invalid to_location ID"}, status=400)
+
+
                 PickUpTask.objects.create(
+                    outward=outward,
                     item=outward.item,
                     from_location=outward.location,
-                    to_location=outward.location,  # or final delivery location
+                    to_location=to_location, #
                     quantity=outward.quantity,
                     assigned_to=request.user,
                     task_type=pickup_type,

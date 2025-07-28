@@ -23,4 +23,6 @@ urlpatterns = [
     path('warehouse/', include('warehouse.urls')),
     path('inventory/', include('inventory.urls')),
     path('tasks/', include('tasks.urls')),
+    path('loading/', include('loading.urls')),
+    path('api/', include('api.urls')),
 ]

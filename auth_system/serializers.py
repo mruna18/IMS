@@ -45,26 +45,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id','username','email']
         
-class UserListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id','username','email']
-
-class UserDetailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id','username','email']
-        
-class UserUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['username','email']
-
-class UserDeleteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id']
-        
 class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
