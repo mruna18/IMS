@@ -8,9 +8,26 @@
 from django.contrib import admin
 from .models import Role, Employee
 from django.contrib.auth import get_user_model
+from api.permission import *
 
 User = get_user_model()
 
+
+# @admin.register(Role)
+# class RoleAdmin(admin.ModelAdmin):
+#     list_display = ('id', 'code', 'name', 'permission_count')
+#     search_fields = ('code', 'name')
+#     readonly_fields = ('permission_preview',)
+
+#     def permission_count(self, obj):
+#         return len(obj.permissions or [])
+#     permission_count.short_description = 'Permissions'
+
+#     def permission_preview(self, obj):
+#         if not obj.permissions:
+#             return "-"
+#         return ", ".join(obj.permissions)
+#     permission_preview.short_description = "Permissions"
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
@@ -19,14 +36,24 @@ class RoleAdmin(admin.ModelAdmin):
     readonly_fields = ('permission_preview',)
 
     def permission_count(self, obj):
-        return len(obj.permissions or [])
+        role_code = obj.code.lower()
+        groups = PERMISSION_GROUPS.get(role_code, [])
+        permissions = set()
+        for group in groups:
+            permissions.update(PERMISSIONS.get(group, []))
+        return len(permissions)
+
     permission_count.short_description = 'Permissions'
 
     def permission_preview(self, obj):
-        if not obj.permissions:
-            return "-"
-        return ", ".join(obj.permissions)
-    permission_preview.short_description = "Permissions"
+        role_code = obj.code.lower()
+        groups = PERMISSION_GROUPS.get(role_code, [])
+        permissions = set()
+        for group in groups:
+            permissions.update(PERMISSIONS.get(group, []))
+        return ", ".join(sorted(permissions)) if permissions else "-"
+        
+    permission_preview.short_description = "Effective Permissions"
 
 
 @admin.register(Employee)

@@ -55,16 +55,22 @@ class PickUpTaskCompleteView(APIView):
     @check_employee_permission("complete_pickup")
     def post(self, request, pk):
         try:
-            task = PickUpTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
+            # Allow superuser/admin to complete any task
+            if request.user.is_superuser:
+                task = PickUpTask.objects.get(pk=pk, deleted=False)
+            else:
+                task = PickUpTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
         except PickUpTask.DoesNotExist:
-            return Response({"error": "Task not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Task not found"}, status=404)
 
         task.is_completed = True
         task.completed_at = timezone.now()
         task.updated_by = request.user
         task.save()
 
-        return Response({"message": "Pickup task marked as complete"}, status=status.HTTP_200_OK)
+
+        return Response({"message": "Pickup task marked as complete"}, status=200)
+
 
 class UserTaskDashboardView(APIView):
     permission_classes = [IsAuthenticated]
