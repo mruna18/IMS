@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.db.models import Sum
 
 
 class ItemCategory(models.Model):
@@ -112,8 +113,10 @@ class Inward(models.Model):
     invoice_number = models.CharField(max_length=100, null=True, blank=True)
     payment_terms = models.CharField(max_length=100, null=True, blank=True)
     supplier_rating = models.FloatField(null=True, blank=True)
+    reference_number = models.CharField(max_length=100, null=True, blank=True)
 
     received_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, null=True, blank=True)
+    received_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     date = models.DateField(auto_now_add=True, null=True, blank=True)
     remarks = models.TextField(null=True, blank=True)
 
@@ -123,6 +126,20 @@ class Inward(models.Model):
 
     def __str__(self):
         return f"Inward #{self.id} - {self.item.name if self.item else 'Unknown Item'} at {self.location.code if self.location else 'Unknown Location'}"
+
+class InwardItem(models.Model):
+    inward = models.ForeignKey(Inward, on_delete=models.CASCADE, related_name='items')
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    quantity = models.FloatField(null=True, blank=True)
+    rate = models.FloatField(null=True, blank=True)
+    quality_status = models.ForeignKey(QualityStatus, on_delete=models.SET_NULL, null=True, blank=True)
+    remarks = models.TextField(blank=True)
+
+    purchase_order = models.ForeignKey('PurchaseOrder', on_delete=models.SET_NULL, null=True, blank=True)
+    purchase_order_item = models.ForeignKey('PurchaseOrderItem', on_delete=models.SET_NULL, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
 
 
 class Outward(models.Model):
@@ -253,6 +270,17 @@ class PurchaseOrderItem(models.Model):
 
     def __str__(self):
         return f"{self.item.name} x {self.quantity} (PO#{self.purchase_order.id})"
+    
+    @property
+    def fulfilled_quantity(self):
+        total = InwardItem.objects.filter(purchase_order_item=self).aggregate(
+            total_received=Sum('quantity')
+        )['total_received'] or 0
+        return total
+
+    @property
+    def remaining_quantity(self):
+        return self.quantity - self.fulfilled_quantity
 
 class InventoryActionType(models.Model):
     code = models.CharField(max_length=50, unique=True)  # e.g., 'inward', 'transfer'

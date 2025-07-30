@@ -5,7 +5,7 @@ from rest_framework.response import Response
 # 1. Flat permissions grouped by category
 PERMISSIONS = {
     "all": [
-        "create_employee", "assign_roles",
+        "create_employee", "assign_roles","create_purchase_order"
 
         "create_inward", "edit_inward", "view_inward",
         "create_outward", "edit_outward", "view_outward",
@@ -29,7 +29,7 @@ PERMISSIONS = {
 PERMISSION_GROUPS = {
     "admin": ["all"],
     "hr": ["employee_mgmt", "inward_ops", "inventory_view"],
-    "manager": ["inventory_view", "loading_ops"],
+    "manager": ["inventory_view", "loading_ops","create_purchase_order"],
     "operator": ["read_only"],
     "dispatcher": ["outward_ops", "loading_ops"]
 }

@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from api.permission import *
 from django.utils.dateparse import parse_date
 from django.utils import timezone
+from django.db.models import Sum
 
 from .models import *
 from .serializers import *
@@ -235,36 +236,62 @@ class InwardCreateView(APIView):
         data['received_by'] = request.user.id
         to_location_id = data.pop('to_location', None)
 
-        serializer = InwardSerializer(data=data)
-        if serializer.is_valid():
-            item = serializer.validated_data['item']
-            po = serializer.validated_data.get('purchase_order')
-            poi = serializer.validated_data.get('purchase_order_item')
+        items_data = data.pop("items", [])
+        if not items_data:
+            return Response({"error": "At least one item is required."}, status=400)
 
-            # PO/POI validations
-            if poi and poi.item != item:
-                return Response({
-                    "error": "Purchase Order Item does not match the selected item.",
-                    "status": "400"
-                }, status=status.HTTP_400_BAD_REQUEST)
+        inward_serializer = InwardSerializer(data=data)
+        if not inward_serializer.is_valid():
+            return Response(inward_serializer.errors, status=400)
 
-            if po and poi and poi.purchase_order != po:
-                return Response({
-                    "error": "Purchase Order Item does not belong to selected Purchase Order.",
-                    "status": "400"
-                }, status=status.HTTP_400_BAD_REQUEST)
+        inward = inward_serializer.save()
 
-            if po and not serializer.validated_data.get("supplier"):
-                serializer.validated_data["supplier"] = po.supplier
+        for item_data in items_data:
+            item_data['inward'] = inward.id  # attach inward FK
 
-            inward = serializer.save()
+            # ------------------------------
+            # 💡 PO/POI validation
+            poi_id = item_data.get("purchase_order_item")
+            po_id = item_data.get("purchase_order")
+
+            if poi_id:
+                try:
+                    poi = PurchaseOrderItem.objects.get(id=poi_id)
+                except PurchaseOrderItem.DoesNotExist:
+                    return Response({"error": f"PurchaseOrderItem {poi_id} not found."}, status=400)
+
+                # Validate item match
+                if poi.item.id != item_data.get("item"):
+                    return Response({"error": f"Item does not match PO Item {poi_id}."}, status=400)
+
+                # Validate PO match if given
+                if po_id and poi.purchase_order.id != po_id:
+                    return Response({"error": f"PO Item does not belong to PO {po_id}."}, status=400)
+
+                # Validate over-fulfillment
+                total_received = InwardItem.objects.filter(purchase_order_item=poi).aggregate(
+                    total=Sum('quantity'))['total'] or 0
+                remaining_qty = poi.quantity - total_received
+
+                if item_data["quantity"] > remaining_qty:
+                    return Response({
+                        "error": f"Received quantity exceeds remaining for PO Item {poi_id}. Remaining: {remaining_qty}"
+                    }, status=400)
+
+            # ------------------------------
+
+            item_serializer = InwardItemSerializer(data=item_data)
+            if not item_serializer.is_valid():
+                return Response(item_serializer.errors, status=400)
+
+            item_obj = item_serializer.save()
 
             # Inventory update
             inventory, created = Inventory.objects.get_or_create(
-                item=inward.item,
+                item=item_obj.item,
                 location=inward.location,
                 defaults={
-                    'quantity': inward.quantity,
+                    'quantity': item_obj.quantity,
                     'remarks': inward.remarks,
                     'created_by': request.user,
                     'updated_by': request.user
@@ -273,15 +300,14 @@ class InwardCreateView(APIView):
 
             if not created:
                 quantity_before = inventory.quantity
-                inventory.quantity += inward.quantity
+                inventory.quantity += item_obj.quantity
                 inventory.updated_by = request.user
                 inventory.save()
                 quantity_after = inventory.quantity
             else:
                 quantity_before = 0
-                quantity_after = inward.quantity
+                quantity_after = item_obj.quantity
 
-            # InventoryLog (updated to match your new model)
             try:
                 action_type = InventoryActionType.objects.get(code='IN')
             except InventoryActionType.DoesNotExist:
@@ -289,11 +315,11 @@ class InwardCreateView(APIView):
 
             InventoryLog.objects.create(
                 inventory=inventory,
-                item=inward.item,
+                item=item_obj.item,
                 location=inward.location,
                 action_type=action_type,
                 quantity_before=quantity_before,
-                quantity_changed=inward.quantity,
+                quantity_changed=item_obj.quantity,
                 quantity_after=quantity_after,
                 reference_id=inward.id,
                 reference_type='Inward',
@@ -301,36 +327,26 @@ class InwardCreateView(APIView):
                 remarks=inward.remarks
             )
 
-            # PutAway Task
             try:
                 putaway_type = TaskType.objects.get(code="PUTAWAY")
             except TaskType.DoesNotExist:
                 return Response({"error": "PutAway task type not configured."}, status=500)
 
-            to_location = None
-            if to_location_id:
-                try:
-                    to_location = Location.objects.get(id=to_location_id)
-                except Location.DoesNotExist:
-                    return Response({"error": "Invalid to_location ID"}, status=400)
+            to_location = Location.objects.filter(id=to_location_id).first() or inward.location
 
             PutAwayTask.objects.create(
                 inward=inward,
-                item=inward.item,
+                item=item_obj.item,
                 from_location=inward.location,
-                to_location=to_location or inward.location,
-                quantity=inward.quantity,
+                to_location=to_location,
+                quantity=item_obj.quantity,
                 assigned_to=request.user,
                 task_type=putaway_type,
                 created_by=request.user,
                 updated_by=request.user
             )
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+        return Response({"message": "Inward created successfully", "inward_id": inward.id}, status=201)
 
 # ------------------- OUTWARD ------------------- #
 
@@ -738,13 +754,13 @@ class PurchaseOrderListView(APIView):
 class PurchaseOrderCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # @check_employee_permission("create_purchase_order")
     def post(self, request):
         serializer = PurchaseOrderSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            po = serializer.save()
+            po = serializer.save() 
             return Response({"data": serializer.data, "message": "PO created"}, status=201)
         return Response({"errors": serializer.errors}, status=400)
-
 
 # Get purchase orders by supplier
 class PurchaseOrdersBySupplierView(APIView):
@@ -785,3 +801,4 @@ class FilteredPurchaseOrderListView(APIView):
 
         serializer = PurchaseOrderSerializer(queryset, many=True)
         return Response({"data": serializer.data, "status": "200"})
+    

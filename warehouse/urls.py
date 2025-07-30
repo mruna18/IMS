@@ -7,4 +7,7 @@ urlpatterns = [
     path('list-location/<int:warehouse_id>/', LocationListView.as_view(), name='location-list'),
     path('create-location/<int:warehouse_id>/', LocationCreateView.as_view(), name='location-create'),
 
+    # path("warehouse-storage/", WarehouseStorageView.as_view()),
+    path("warehouse-storage/", WarehouseStorageGroupedView.as_view()),
+
 ]

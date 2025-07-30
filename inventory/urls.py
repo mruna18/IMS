@@ -43,4 +43,6 @@ urlpatterns = [
     path('purchase-orders/create/', PurchaseOrderCreateView.as_view(), name='purchaseorder-create'),
     path('purchase-orders/filter/', FilteredPurchaseOrderListView.as_view(), name='purchaseorder-filter'),
 
+    
+
 ]

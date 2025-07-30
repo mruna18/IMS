@@ -47,30 +47,31 @@ class InventorySerializer(serializers.ModelSerializer):
         #     'created_at', 'updated_at', 'deleted'
         # ]
 
-class InwardSerializer(serializers.ModelSerializer):
+
+class InwardItemSerializer(serializers.ModelSerializer):
     item_name = serializers.CharField(source='item.name', read_only=True)
-    location_code = serializers.CharField(source='location.code', read_only=True)
-    received_by_name = serializers.CharField(source='received_by.username', read_only=True)
+    quality_status_display = serializers.CharField(source='quality_status.name', read_only=True)
 
-    purchase_order_number = serializers.CharField(source='purchase_order.order_number', read_only=True)
-    purchase_order_item_id = serializers.IntegerField(source='purchase_order_item.id', read_only=True)
-    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    class Meta:
+        model = InwardItem
+        fields = [
+            'id', 'inward', 'item', 'item_name',
+            'quantity', 'rate', 'quality_status', 'quality_status_display', 'remarks',
+            'purchase_order', 'purchase_order_item'
+        ]
+    def __str__(self):
+        return f"{self.item.name} - {self.inward.reference_number}"
 
+class InwardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Inward
         fields = [
-            'id',
-            'item', 'location', 'quantity',
-            'purchase_order', 'purchase_order_item', 'supplier',
-            'delivery_note', 'invoice_number', 'payment_terms', 'supplier_rating',
-
-            'received_by', 'date', 'remarks',
-            'created_at', 'updated_at', 'deleted',
-
-            # Read-only display fields
-            'item_name', 'location_code', 'received_by_name',
-            'purchase_order_number', 'purchase_order_item_id', 'supplier_name',
+            'id', 'supplier', 'location', 'reference_number',
+            'received_by', 'received_at', 'remarks'
         ]
+        read_only_fields = ['id', 'created_at', 'received_by']
+    def __str__(self):
+        return self.name
 
 
 class OutwardSerializer(serializers.ModelSerializer):
@@ -127,12 +128,6 @@ class SupplierSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class PurchaseOrderSerializer(serializers.ModelSerializer):
-    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
-
-    class Meta:
-        model = PurchaseOrder
-        fields = '__all__'
 
 
 class PurchaseOrderItemSerializer(serializers.ModelSerializer):
@@ -140,7 +135,8 @@ class PurchaseOrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PurchaseOrderItem
-        fields = ['id', 'item', 'item_name', 'quantity', 'unit_price', 'remarks']
+        fields = ['id', 'item', 'item_name', 'quantity', 'rate', 'remarks']
+
 
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):
@@ -164,7 +160,15 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
 
         po = PurchaseOrder.objects.create(**validated_data, created_by=created_by)
 
-        for item in items_data:
-            PurchaseOrderItem.objects.create(purchase_order=po, **item)
+        for item_data in items_data:
+            PurchaseOrderItem.objects.create(purchase_order=po, **item_data)
 
         return po
+
+class InventorySummarySerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source='item.name', read_only=True)
+    location_name = serializers.CharField(source='location.name', read_only=True)
+
+    class Meta:
+        model = Inventory
+        fields = ['id', 'item', 'item_name', 'location', 'location_name', 'quantity']

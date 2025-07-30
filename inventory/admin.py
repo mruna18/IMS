@@ -11,11 +11,23 @@ class ItemAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     list_filter = ('is_active',)
 
+# @admin.register(Inward)
+# class InwardAdmin(admin.ModelAdmin):
+#     list_display = ('id','item', 'location', 'quantity', 'received_by', 'date', 'created_at', 'updated_at')
+#     search_fields = ('item__name', 'location__name', 'received_by__username')
+#     list_filter = ('location', 'received_by')
+
 @admin.register(Inward)
 class InwardAdmin(admin.ModelAdmin):
-    list_display = ('id','item', 'location', 'quantity', 'received_by', 'date', 'created_at', 'updated_at')
-    search_fields = ('item__name', 'location__name', 'received_by__username')
-    list_filter = ('location', 'received_by')
+    list_display = ['id', 'get_items', 'location', 'get_total_quantity', 'received_by', 'received_at', 'created_at', 'updated_at']
+
+    def get_items(self, obj):
+        return ", ".join(str(item.item.name) for item in obj.items.all())
+    get_items.short_description = 'Items'
+
+    def get_total_quantity(self, obj):
+        return sum(item.quantity for item in obj.items.all())
+    get_total_quantity.short_description = 'Quantity'
 
 @admin.register(Outward)
 class OutwardAdmin(admin.ModelAdmin):
@@ -108,3 +120,7 @@ class PurchaseOrderItemAdmin(admin.ModelAdmin):
 class InventoryActionTypeAdmin(admin.ModelAdmin):
     list_display = ('id', 'code', 'name')
     search_fields = ('code', 'name')
+
+@admin.register(InwardItem)
+class InwardItemAdmin(admin.ModelAdmin):
+    list_display = ['id', 'item', 'inward', 'quantity', 'rate', 'quality_status']

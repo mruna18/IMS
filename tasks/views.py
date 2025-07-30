@@ -26,7 +26,7 @@ class PutAwayTaskListView(APIView):
 class PutAwayTaskCompleteView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @check_employee_permission("complete_putaway")
+    #@check_employee_permission("complete_putaway")
     def post(self, request, pk):
         try:
             task = PutAwayTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
@@ -52,7 +52,7 @@ class PickUpTaskListView(APIView):
 class PickUpTaskCompleteView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @check_employee_permission("complete_pickup")
+    #@check_employee_permission("complete_pickup")
     def post(self, request, pk):
         try:
             # Allow superuser/admin to complete any task
