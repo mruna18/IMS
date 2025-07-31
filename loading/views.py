@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
+
 from .models import Loading
 from .serializers import LoadingSerializer
-from inventory.models import Outward
-from tasks.models import PickUpTask
+from inventory.models import *
+from tasks.models import InventoryTask, TaskType
 from api.permission import check_employee_permission
 
 
@@ -20,8 +21,8 @@ class LoadingStartView(APIView):
 
         # Manual outward validation
         try:
-            outward = Outward.objects.get(id=outward_id, deleted=False)
-        except Outward.DoesNotExist:
+            outward = InventoryTransaction.objects.get(id=outward_id, process_type__code="OUTWARD", deleted=False)
+        except outward.DoesNotExist:
             return Response(
                 {"error": "Outward with this ID does not exist or has been deleted."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -35,6 +36,7 @@ class LoadingStartView(APIView):
             serializer.save()
             return Response({"message": "Loading started", "data": serializer.data}, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class LoadingCompleteView(APIView):
     permission_classes = [IsAuthenticated]
@@ -64,11 +66,23 @@ class LoadingCompleteView(APIView):
             outward.save()
 
         # Mark pickup task as complete if not already
-        pickup_task = PickUpTask.objects.filter(outward=outward, is_completed=False).first()
-        if pickup_task:
-            pickup_task.is_completed = True
-            pickup_task.completed_at = timezone.now()
-            pickup_task.save()
+        try:
+            pickup_task_type = TaskType.objects.get(code="PICKUP")
+            pickup_task = InventoryTask.objects.filter(
+                reference_id=outward.id,
+                reference_type="Outward",
+                task_type=pickup_task_type,
+                is_completed=False
+            ).first()
+
+            if pickup_task:
+                pickup_task.is_completed = True
+                pickup_task.completed_at = timezone.now()
+                pickup_task.updated_by = request.user
+                pickup_task.save()
+
+        except TaskType.DoesNotExist:
+            pass  # silently fail if PICKUP task type not defined
 
         return Response({"message": "Loading marked as complete and outward dispatched"}, status=status.HTTP_200_OK)
 

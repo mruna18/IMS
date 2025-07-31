@@ -19,6 +19,7 @@ urlpatterns = [
 
 
     path('stock-summary/', InventorySummaryView.as_view()),
+    # path('dashboard/', InventoryDashboardView.as_view(), name='inventory-dashboard'),
     path('list-inward/', InwardListView.as_view()),
     path('create-inward/', InwardCreateView.as_view()),
     path('list-outward/', OutwardListView.as_view()),
@@ -29,12 +30,12 @@ urlpatterns = [
     path('inventory-delete/<int:pk>/', InventorySoftDeleteView.as_view(), name='inventory-soft-delete'),
     path('inventory-list/', InventoryListView.as_view(), name='inventory-list'),
 
-    path('logs/', InventoryLogListView.as_view()),
+    # path('logs/', InventoryLogListView.as_view()),
 
     path('inventory-transfer/', InventoryTransferCreateView.as_view(), name='inventory-transfer'),
     path('inventory-adjustment/', InventoryAdjustmentCreateView.as_view(), name='inventory-adjustment'),
     path('inventory-return/', InventoryReturnCreateView.as_view(), name='inventory-return'),
-    path('inventory-cycle-count/', CycleCountCreateView.as_view(), name='inventory-cycle-count'),
+    # path('inventory-cycle-count/', CycleCountCreateView.as_view(), name='inventory-cycle-count'),
 
     path('get-suppliers/', SupplierListView.as_view(), name='supplier-list'),
     path('create-suppliers/', SupplierCreateView.as_view(), name='supplier-create'),
@@ -43,6 +44,28 @@ urlpatterns = [
     path('purchase-orders/create/', PurchaseOrderCreateView.as_view(), name='purchaseorder-create'),
     path('purchase-orders/filter/', FilteredPurchaseOrderListView.as_view(), name='purchaseorder-filter'),
 
-    
+    # Notification URLs
+    # path('notifications/', NotificationListView.as_view(), name='notification-list'),
+    # path('notifications/<int:notification_id>/mark-read/', NotificationMarkReadView.as_view(), name='notification-mark-read'),
+    # path('notifications/mark-all-read/', NotificationMarkAllReadView.as_view(), name='notification-mark-all-read'),
+
+    # Barcode search
+    path('barcode-search/', BarcodeSearchView.as_view(), name='barcode-search'),
+
+    #! customer URLs
+    path('list-customers/', CustomerListCreateView.as_view(), name='customer-list'),
+    path('post-customers/', CustomerCreateView.as_view(), name='customer-create'),
+
+    #! sales order URLs
+    # path('list-sales-orders/', SalesOrderListView.as_view(), name='salesorder-list'),
+    path('post-sales-orders/', SalesOrderCreateView.as_view(), name='salesorder-create'),
+
+    #! invoice
+    # path('list-invoices/', InvoiceListView.as_view(), name='invoice-list'),
+    path('post-invoices/', InvoiceCreateView.as_view(), name='invoice-create'),
+
+    #! inventory transaction
+    # path('inventory-transactions/', InventoryTransactionListView.as_view(), name='inventory-transaction-list'),
+    path('create-transaction/', InventoryTransactionCreateView.as_view(), name='inventory-transaction-create'),
 
 ]

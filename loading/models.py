@@ -5,7 +5,7 @@ from inventory.models import *
 
 
 class Loading(models.Model):
-    outward = models.ForeignKey('inventory.Outward', on_delete=models.DO_NOTHING, related_name='loadings')
+    outward = models.ForeignKey(InventoryTransaction, on_delete=models.DO_NOTHING, null=True, blank=True)
     vehicle_number = models.CharField(max_length=50, blank=True, null=True)
     driver_name = models.CharField(max_length=100, blank=True, null=True)
     is_completed = models.BooleanField(default=False)
