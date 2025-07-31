@@ -6,6 +6,7 @@ from .models import *
 from .serializers import *
 from django.utils import timezone
 from api.permission import check_employee_permission
+from loading.models import *
 
 class TaskTypeListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -52,10 +53,9 @@ class PickUpTaskListView(APIView):
 class PickUpTaskCompleteView(APIView):
     permission_classes = [IsAuthenticated]
 
-    #@check_employee_permission("complete_pickup")
+    # @check_employee_permission("complete_pickup")
     def post(self, request, pk):
         try:
-            # Allow superuser/admin to complete any task
             if request.user.is_superuser:
                 task = PickUpTask.objects.get(pk=pk, deleted=False)
             else:
@@ -63,13 +63,27 @@ class PickUpTaskCompleteView(APIView):
         except PickUpTask.DoesNotExist:
             return Response({"error": "Task not found"}, status=404)
 
+        # Prevent duplicate completion
+        if task.is_completed:
+            return Response({"error": "Task already completed"}, status=400)
+
+        #create loading record
+        Loading.objects.create(
+            outward=task.outward,
+            item=task.item,
+            quantity=task.quantity,
+            loaded_by=request.user,
+            remarks="Auto-logged from pickup task"
+        )
+
+
         task.is_completed = True
         task.completed_at = timezone.now()
         task.updated_by = request.user
         task.save()
 
-
         return Response({"message": "Pickup task marked as complete"}, status=200)
+
 
 
 class UserTaskDashboardView(APIView):

@@ -1,7 +1,8 @@
 from django.db import models
-
-# Create your models here.
 from django.conf import settings
+# from django.contrib.auth.models import User
+from inventory.models import *
+
 
 class Loading(models.Model):
     outward = models.ForeignKey('inventory.Outward', on_delete=models.DO_NOTHING, related_name='loadings')
@@ -11,6 +12,10 @@ class Loading(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
+    loaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    loaded_at = models.DateTimeField(null=True, blank=True)
+    item = models.ForeignKey(Item, on_delete=models.DO_NOTHING,null=True, blank=True)  
+    quantity = models.FloatField(null=True, blank=True)  
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='created_loadings', null=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='updated_loadings', null=True)
