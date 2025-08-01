@@ -56,7 +56,7 @@ class ItemAdmin(admin.ModelAdmin):
 
 @admin.register(Inventory)
 class InventoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'item', 'location', 'quantity', 'reserved_quantity', 'batch', 'lot', 'quality_status', 'expiry_date')
+    list_display = ('id', 'item', 'location', 'quantity', 'reserved_quantity', 'batch', 'lot', 'quality_status')
     list_filter = ('location', 'quality_status', 'deleted')
     search_fields = ('item__name', 'batch__batch_number', 'lot__lot_number')
     autocomplete_fields = ('item', 'location', 'batch', 'lot', 'quality_status', 'created_by', 'updated_by')
@@ -154,3 +154,15 @@ class InvoiceAdmin(admin.ModelAdmin):
 class InventoryProcessTypeAdmin(admin.ModelAdmin):
     list_display = ('id', 'code', 'name')
     search_fields = ('code', 'name')
+
+
+@admin.register(InventoryTransaction)
+class InventoryTransactionAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'process_type', 'item', 'quantity',
+        'location', 'from_location', 'to_location','rate',
+        'created_by', 'created_at', 'deleted'
+    )
+    list_filter = ('process_type', 'created_at', 'deleted')
+    search_fields = ('item__name', 'reference_number', 'remarks')
+    readonly_fields = ('created_at', 'updated_at')

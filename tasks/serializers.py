@@ -43,3 +43,4 @@ class InventoryTaskSerializer(serializers.ModelSerializer):
         # You can add further types like 'MOVE', 'CYCLE_COUNT', etc.
 
         return data
+

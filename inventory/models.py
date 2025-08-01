@@ -70,7 +70,7 @@ class Inventory(models.Model):
 
     batch = models.ForeignKey('ItemBatch', on_delete=models.SET_NULL, null=True, blank=True)
     lot = models.ForeignKey('ItemLot', on_delete=models.SET_NULL, null=True, blank=True)
-    expiry_date = models.DateField(null=True, blank=True)
+    # expiry_date = models.DateField(null=True, blank=True)
 
     quality_status = models.ForeignKey('QualityStatus', on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -119,21 +119,31 @@ class InventoryProcessType(models.Model):
         return f"{self.name} ({self.code})"
 
 class InventoryTransaction(models.Model):
-    process_type = models.ForeignKey('InventoryProcessType', on_delete=models.PROTECT)
+    process_type = models.ForeignKey('InventoryProcessType', on_delete=models.DO_NOTHING, null=True, blank=True)
 
-    item = models.ForeignKey('inventory.Item', on_delete=models.DO_NOTHING)
-    quantity = models.FloatField()
+    item = models.ForeignKey('inventory.Item', on_delete=models.DO_NOTHING, null=True, blank=True)
+    quantity = models.FloatField(null=True, blank=True)
+    rate = models.FloatField(null=True, blank=True)  # per unit rate
+    uom = models.CharField(max_length=50, null=True, blank=True)  # Unit of measure (optional if item has default)
 
     location = models.ForeignKey('warehouse.Location', on_delete=models.DO_NOTHING, null=True, blank=True)
     from_location = models.ForeignKey('warehouse.Location', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='transfers_from')
     to_location = models.ForeignKey('warehouse.Location', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='transfers_to')
 
+    batch_number = models.CharField(max_length=100, null=True, blank=True)
+    # expiry_date = models.DateField(null=True, blank=True)
+
     supplier = models.ForeignKey('inventory.Supplier', on_delete=models.DO_NOTHING, null=True, blank=True)
     purchase_order = models.ForeignKey('inventory.PurchaseOrder', on_delete=models.SET_NULL, null=True, blank=True)
     delivery_note = models.CharField(max_length=100, null=True, blank=True)
+
+    sales_order = models.ForeignKey('inventory.SalesOrder', on_delete=models.SET_NULL, null=True, blank=True)
     invoice_number = models.CharField(max_length=100, null=True, blank=True)
     payment_terms = models.CharField(max_length=100, null=True, blank=True)
     supplier_rating = models.FloatField(null=True, blank=True)
+
+    tax_percent = models.FloatField(null=True, blank=True)
+    discount_percent = models.FloatField(null=True, blank=True)
 
     is_dispatched = models.BooleanField(default=False)
     dispatched_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, null=True, blank=True, related_name='dispatches')
@@ -141,18 +151,23 @@ class InventoryTransaction(models.Model):
 
     reason = models.TextField(null=True, blank=True)
     is_defective = models.BooleanField(default=False)
+    quality_passed = models.BooleanField(null=True, blank=True)
 
     remarks = models.TextField(null=True, blank=True)
     reference_number = models.CharField(max_length=100, null=True, blank=True)
 
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='inventory_transactions_created')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='inventory_transactions_created', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name='inventory_transactions_updated', null=True, blank=True)
     deleted = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ['-created_at']
+
     def __str__(self):
         return f"{self.process_type.name} | {self.item.name} | Qty: {self.quantity}"
+
 
 #!---------------------------------------------------------------------------
 
@@ -431,7 +446,8 @@ class SalesOrderItem(models.Model):
 #! invoice
 class Invoice(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.DO_NOTHING)
-    outward = models.ForeignKey(InventoryTransaction, on_delete=models.DO_NOTHING)
+    # outward = models.ForeignKey(InventoryTransaction, on_delete=models.DO_NOTHING)
+    outwards = models.ManyToManyField('inventory.InventoryTransaction') 
     sales_order = models.ForeignKey(SalesOrder, on_delete=models.SET_NULL, null=True, blank=True)
 
     invoice_date = models.DateField(auto_now_add=True)

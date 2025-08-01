@@ -63,3 +63,14 @@ class TaskTypeAdmin(admin.ModelAdmin):
 #     def get_to_location(self, obj):
 #         return obj.to_location.code if obj.to_location else None
 #     get_to_location.short_description = 'To Location'
+
+@admin.register(InventoryTask)
+class InventoryTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'task_type', 'item', 'quantity',
+        'from_location', 'to_location', 'assigned_to',
+        'is_completed', 'completed_at', 'deleted'
+    )
+    list_filter = ('task_type', 'is_completed', 'deleted')
+    search_fields = ('item__name', 'assigned_to__username', 'remarks')
+    readonly_fields = ('created_at', 'updated_at')

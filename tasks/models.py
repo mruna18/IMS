@@ -8,6 +8,7 @@ class TaskType(models.Model):
     code = models.CharField(max_length=50, unique=True, null=True, blank=True)  # e.g., PUTAWAY, PICKUP
     name = models.CharField(max_length=100, null=True, blank=True)  # e.g., Put Away Task, Pick Up Task
     description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True) 
 
     def __str__(self):
         return self.name or "Unnamed TaskType"

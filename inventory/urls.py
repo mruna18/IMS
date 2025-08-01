@@ -21,9 +21,9 @@ urlpatterns = [
     path('stock-summary/', InventorySummaryView.as_view()),
     # path('dashboard/', InventoryDashboardView.as_view(), name='inventory-dashboard'),
     path('list-inward/', InwardListView.as_view()),
-    path('create-inward/', InwardCreateView.as_view()),
+    # path('create-inward/', InwardCreateView.as_view()),
     path('list-outward/', OutwardListView.as_view()),
-    path('create-outward/', OutwardCreateView.as_view()),
+    # path('create-outward/', OutwardCreateView.as_view()),
 
     path('inventory-create/', InventoryCreateView.as_view(), name='inventory-create'),
     path('inventory-update/<int:pk>/', InventoryUpdateView.as_view(), name='inventory-update'),
@@ -32,9 +32,9 @@ urlpatterns = [
 
     # path('logs/', InventoryLogListView.as_view()),
 
-    path('inventory-transfer/', InventoryTransferCreateView.as_view(), name='inventory-transfer'),
-    path('inventory-adjustment/', InventoryAdjustmentCreateView.as_view(), name='inventory-adjustment'),
-    path('inventory-return/', InventoryReturnCreateView.as_view(), name='inventory-return'),
+    # path('inventory-transfer/', InventoryTransferCreateView.as_view(), name='inventory-transfer'),
+    # path('inventory-adjustment/', InventoryAdjustmentCreateView.as_view(), name='inventory-adjustment'),
+    # path('inventory-return/', InventoryReturnCreateView.as_view(), name='inventory-return'),
     # path('inventory-cycle-count/', CycleCountCreateView.as_view(), name='inventory-cycle-count'),
 
     path('get-suppliers/', SupplierListView.as_view(), name='supplier-list'),
@@ -65,7 +65,7 @@ urlpatterns = [
     path('post-invoices/', InvoiceCreateView.as_view(), name='invoice-create'),
 
     #! inventory transaction
-    # path('inventory-transactions/', InventoryTransactionListView.as_view(), name='inventory-transaction-list'),
+    # path('list-transactions/', InventoryTransactionListView.as_view(), name='inventory-transaction-list'),
     path('create-transaction/', InventoryTransactionCreateView.as_view(), name='inventory-transaction-create'),
 
 ]

@@ -34,25 +34,25 @@ class PutAwayTaskListView(APIView):
         serializer = InventoryTaskSerializer(tasks, many=True)
         return Response(serializer.data)
 
-class PutAwayTaskCompleteView(APIView):
-    permission_classes = [IsAuthenticated]
+# class PutAwayTaskCompleteView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    # @check_employee_permission("complete_putaway")
-    def post(self, request, pk):
-        try:
-            task = InventoryTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
-        except InventoryTask.DoesNotExist:
-            return Response({"error": "Task not found"}, status=404)
+#     # @check_employee_permission("complete_putaway")
+#     def post(self, request, pk):
+#         try:
+#             task = InventoryTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
+#         except InventoryTask.DoesNotExist:
+#             return Response({"error": "Task not found"}, status=404)
 
-        if task.is_completed:
-            return Response({"error": "Task already completed"}, status=400)
+#         if task.is_completed:
+#             return Response({"error": "Task already completed"}, status=400)
 
-        task.is_completed = True
-        task.completed_at = timezone.now()
-        task.updated_by = request.user
-        task.save()
+#         task.is_completed = True
+#         task.completed_at = timezone.now()
+#         task.updated_by = request.user
+#         task.save()
 
-        return Response({"message": "PutAway task marked as complete"}, status=200)
+#         return Response({"message": "PutAway task marked as complete"}, status=200)
 
 class PickUpTaskListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -72,37 +72,37 @@ class PickUpTaskListView(APIView):
         serializer = InventoryTaskSerializer(tasks, many=True)
         return Response(serializer.data)
 
-class PickUpTaskCompleteView(APIView):
-    permission_classes = [IsAuthenticated]
+# class PickUpTaskCompleteView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    # @check_employee_permission("complete_pickup")
-    def post(self, request, pk):
-        try:
-            if request.user.is_superuser:
-                task = InventoryTask.objects.get(pk=pk, deleted=False)
-            else:
-                task = InventoryTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
-        except InventoryTask.DoesNotExist:
-            return Response({"error": "Task not found"}, status=404)
+#     # @check_employee_permission("complete_pickup")
+#     def post(self, request, pk):
+#         try:
+#             if request.user.is_superuser:
+#                 task = InventoryTask.objects.get(pk=pk, deleted=False)
+#             else:
+#                 task = InventoryTask.objects.get(pk=pk, assigned_to=request.user, deleted=False)
+#         except InventoryTask.DoesNotExist:
+#             return Response({"error": "Task not found"}, status=404)
 
-        if task.is_completed:
-            return Response({"error": "Task already completed"}, status=400)
+#         if task.is_completed:
+#             return Response({"error": "Task already completed"}, status=400)
 
-        # Create loading record
-        Loading.objects.create(
-            outward=task.outward,
-            item=task.item,
-            quantity=task.quantity,
-            loaded_by=request.user,
-            remarks="Auto-logged from pickup task"
-        )
+#         # Create loading record
+#         Loading.objects.create(
+#             outward=task.outward,
+#             item=task.item,
+#             quantity=task.quantity,
+#             loaded_by=request.user,
+#             remarks="Auto-logged from pickup task"
+#         )
 
-        task.is_completed = True
-        task.completed_at = timezone.now()
-        task.updated_by = request.user
-        task.save()
+#         task.is_completed = True
+#         task.completed_at = timezone.now()
+#         task.updated_by = request.user
+#         task.save()
 
-        return Response({"message": "Pickup task marked as complete"}, status=200)
+#         return Response({"message": "Pickup task marked as complete"}, status=200)
 
 
 class UserTaskDashboardView(APIView):
@@ -124,3 +124,39 @@ class UserTaskDashboardView(APIView):
             "putaway_tasks": putaway_serialized.data,
             "pickup_tasks": pickup_serialized.data,
         })
+
+#complete task status
+class InventoryTaskCompleteView(APIView):
+    def post(self, request, task_type_id, task_id):
+        try:
+            task = InventoryTask.objects.get(id=task_id, task_type_id=task_type_id, deleted=False)
+
+            if task.assigned_to != request.user and not request.user.is_superuser:
+                return Response({"error": "You are not authorized to complete this task."}, status=403)
+
+            if task.is_completed:
+                return Response({"error": "Task already completed"}, status=400)
+
+            # Auto create loading if it's a PICKUP task
+            if task.task_type.code == "PICKUP":
+                if task.transaction.process_type.code != "OUTWARD":
+                    return Response({"error": "Pickup task is not linked to an outward transaction."}, status=400)
+
+                Loading.objects.create(
+                    outward=task.transaction,
+                    item=task.item,
+                    quantity=task.quantity,
+                    loaded_by=request.user,
+                    remarks="Auto-logged from pickup task"
+                )
+
+
+            task.is_completed = True
+            task.completed_at = timezone.now()
+            task.updated_by = request.user
+            task.save()
+
+            return Response({"message": "Task marked as complete"}, status=200)
+
+        except InventoryTask.DoesNotExist:
+            return Response({"error": "Task not found or doesn't match type."}, status=404)
